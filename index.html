@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Chat</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        #chat-box {
+            width: 300px;
+            height: 400px;
+            border: 1px solid #ccc;
+            overflow-y: scroll;
+            padding: 10px;
+            margin-bottom: 10px;
+            display: none;
+        }
+        #message-box, #file-input {
+            width: 300px;
+        }
+        #send-btn, #send-file-btn {
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        #name-box {
+            width: 300px;
+        }
+        #start-btn {
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Online Chat</h1>
+
+    <!-- Блок ввода имени -->
+    <input type="text" id="name-box" placeholder="Enter your name..." />
+    <button id="start-btn">Start Chat</button>
+
+    <!-- Чат блок -->
+    <div id="chat-box"></div>
+
+    <!-- Поле для ввода сообщений -->
+    <input type="text" id="message-box" placeholder="Type your message here..." />
+    <button id="send-btn">Send</button>
+
+    <!-- Поле для загрузки файлов -->
+    <input type="file" id="file-input" />
+    <button id="send-file-btn">Send File</button>
+
+    <script>
+        const chatBox = document.getElementById('chat-box');
+        const messageBox = document.getElementById('message-box');
+        const sendButton = document.getElementById('send-btn');
+        const fileInput = document.getElementById('file-input');
+        const sendFileButton = document.getElementById('send-file-btn');
+        const nameBox = document.getElementById('name-box');
+        const startButton = document.getElementById('start-btn');
+
+        let userName = '';
+
+        // Открытие WebSocket соединения
+        const socket = new WebSocket('ws://localhost:8080');
+
+        // Функция для начала чата после ввода имени
+        startButton.addEventListener('click', function () {
+            userName = nameBox.value.trim();
+            if (userName) {
+                nameBox.style.display = 'none';
+                startButton.style.display = 'none';
+                chatBox.style.display = 'block';
+                messageBox.style.display = 'block';
+                sendButton.style.display = 'block';
+                sendFileButton.style.display = 'block';
+            }
+        });
+
+        // Когда получаем сообщение от сервера
+        socket.addEventListener('message', function (event) {
+            const message = document.createElement('div');
+            message.textContent = event.data;
+            chatBox.appendChild(message);
+        });
+
+        // Отправка текстового сообщения на сервер
+        sendButton.addEventListener('click', function () {
+            const message = messageBox.value;
+            if (message) {
+                socket.send(JSON.stringify({ user: userName, message }));
+                messageBox.value = '';  // Очистка поля ввода
+            }
+        });
+
+        // Отправка файла на сервер
+        sendFileButton.addEventListener('click', function () {
+            const file = fileInput.files[0]; // Получаем объект файла
+            if (file) {
+                const reader = new FileReader();
+
+                // Когда файл будет прочитан
+                reader.onload = function (e) {
+                    const text = e.target.result; // Получаем текстовое содержимое файла
+                    // Отправляем содержимое файла
+                    socket.send(JSON.stringify({ user: userName, message: `Sent a file: ${file.name}, Contents: ${text}` }));
+                    fileInput.value = ''; // Очистка поля загрузки файла
+                };
+
+                // Чтение содержимого файла как текст
+                reader.readAsText(file); // Преобразуем Blob в текст
+            }
+        });
+    </script>
+
+</body>
+</html>
